@@ -70,7 +70,7 @@ build() {
   # Build the root project (official profile): TS compile, tsdown bundles, etc.
   # Serial execution + conservative heap to avoid OOM on typert generation.
   # On low-RAM hosts, reduce further: DSH_TSC_MAX_OLD_SPACE_SIZE=2048
-  NODE_OPTIONS="--max-old-space-size=2048" DSH_TSC_MAX_OLD_SPACE_SIZE=2048 pnpm run build:official --serial
+  NODE_OPTIONS="--max-old-space-size=4096" DSH_TSC_MAX_OLD_SPACE_SIZE=4096 pnpm run build:official --serial
 
   # Package the desktop Linux x64 unsigned AppImage.
   # DSH_DESKTOP_TARGET_PLATFORM/ARCH select linux-x64 in package-target.ts.
