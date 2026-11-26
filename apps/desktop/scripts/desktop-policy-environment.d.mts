@@ -10,6 +10,7 @@ export interface DesktopPolicyEnvironment {
 /**
  * Resolve policy settings before artifact preparation or signing.
  * @param environment File-owned release settings; only the selected origin is required.
- * @returns Policy metadata with deployment-selected origin and authentication.
+ * @param platform Target platform; Linux has no policy client, so policy settings there are a configuration error.
+ * @returns Policy metadata with deployment-selected origin and authentication, or undefined for Linux.
  */
-export function resolveDesktopPolicyEnvironment(environment: NodeJS.ProcessEnv): DesktopPolicyEnvironment
+export function resolveDesktopPolicyEnvironment(environment: NodeJS.ProcessEnv, platform?: 'win32' | 'darwin' | 'linux'): DesktopPolicyEnvironment | undefined
