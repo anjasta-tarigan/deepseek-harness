@@ -78,9 +78,7 @@ function runPnpm(args: readonly string[]): Promise<void> {
     const userConfig = join(config, 'npmrc')
     mkdirSync(config, { recursive: true })
     writeFileSync(userConfig, '')
-    const electronArgs = process.platform === 'linux' ? ['--no-sandbox'] : []
     const child = spawn(NODE, [
-      ...electronArgs,
       '--expose-internals',
       PNPM,
       `--config.registry=${registry}`,
