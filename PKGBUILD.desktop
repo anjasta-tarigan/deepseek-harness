@@ -1,0 +1,123 @@
+# Maintainer: Your Name <you@example.com>
+# DeepSeek Harness Desktop — Arch Linux package
+#
+# Builds the Electron desktop shell (@deepseek-ai/dsh-desktop) from source
+# and packages the resulting unsigned AppImage for Arch Linux.
+#
+# Requires musl-gcc for the native landlock-run + flock system binaries:
+#   sudo pacman -S musl
+#
+# Builds offline after pnpm install; no network access during package().
+#
+# To bump to a new upstream release, run `makepkg -g` to regenerate
+# sha256sums (set to SKIP here since the git source is dynamic).
+#
+# Upstream: https://github.com/anjasta-tarigan/deepseek-harness
+
+pkgname=dsh-desktop
+pkgrel=1
+pkgdesc="DeepSeek Harness Desktop — Electron desktop shell (unsigned AppImage)"
+arch=('x86_64')
+url="https://github.com/anjasta-tarigan/deepseek-harness"
+license=('MIT')
+depends=(
+  'nodejs'
+  'fuse2'            # AppImage runtime extraction
+  'libxtst'
+  'libxrandr'
+  'libxss'
+  'mesa'             # provides libgbm
+  'alsa-lib'         # provides libasound
+)
+makedepends=(
+  'pnpm'
+  'npm'
+  'musl'             # musl-gcc for native landlock-run static binary
+  'gcc'
+  'make'
+  'git'
+  'curl'
+)
+source=("git+https://github.com/anjasta-tarigan/deepseek-harness.git#branch=master")
+sha256sums=('SKIP')
+
+# Skip stripping/debug symbol processing: hundreds of Node native binaries
+# would otherwise be processed by strip/debugedit in the tidy step.
+options=('!strip' '!debug' '!lto')
+
+# Product version, synced with package.json at release time.
+# Arch pkgver converts npm's hyphens to dots: 0.2.3-alpha.2 -> 0.2.3.alpha.2
+pkgver=0.2.3.alpha.2
+
+build() {
+  cd "$srcdir/deepseek-harness"
+
+  # Node.js version must satisfy engines: ^24.22.3 || >=26.13.1
+  local node_ver
+  node_ver=$(node --version | sed 's/^v//')
+  case "$node_ver" in
+    24.*|26.*|27.*|28.*|29.*|30.*) ;;
+    *) error "Node.js $node_ver unsupported; need ^24.22.3 or >=26.13.1" ;;
+  esac
+
+  # Install workspace dependencies (frozen lockfile, offline cache preferred).
+  pnpm install --frozen-lockfile --prefer-offline
+
+  # Build native system binaries (landlock-run static musl binary + flock addon).
+  # musl-gcc is required by native/system/scripts/build.ts.
+  (cd native/system && pnpm build:native)
+
+  # Build the root project (official profile): TS compile, tsdown bundles, etc.
+  # Serial execution + larger heap to avoid OOM on typert generation.
+  NODE_OPTIONS="--max-old-space-size=6144" pnpm run build:official --serial
+
+  # Package the desktop Linux x64 unsigned AppImage.
+  # DSH_DESKTOP_TARGET_PLATFORM/ARCH select linux-x64 in package-target.ts.
+  (cd apps/desktop && \
+    DSH_DESKTOP_TARGET_PLATFORM=linux \
+    DSH_DESKTOP_TARGET_ARCH=x64 \
+    pnpm package:linux:x64:unsigned)
+
+  # Locate the produced AppImage for the package() step.
+  local appimage
+  appimage=$(find "$srcdir/deepseek-harness/apps/desktop/.desktop-build/targets/linux-x64/artifacts" -name '*.AppImage' -print -quit)
+  if [[ -z "$appimage" ]]; then
+    error "No AppImage produced in linux-x64/artifacts"
+    return 1
+  fi
+  printf '%s' "$appimage" > "$srcdir/.appimage-path"
+}
+
+package() {
+  local appimage
+  appimage=$(cat "$srcdir/.appimage-path")
+
+  # Install the AppImage into /opt/dsh-desktop/
+  local install_dir="$pkgdir/opt/dsh-desktop"
+  mkdir -p "$install_dir"
+  install -m 0755 "$appimage" "$install_dir/DeepSeek Harness.AppImage"
+
+  # Symlink /usr/bin/dsh-desktop -> /opt/dsh-desktop/DeepSeek Harness.AppImage
+  mkdir -p "$pkgdir/usr/bin"
+  ln -s "/opt/dsh-desktop/DeepSeek Harness.AppImage" "$pkgdir/usr/bin/dsh-desktop"
+
+  # Desktop file for application menu integration.
+  mkdir -p "$pkgdir/usr/share/applications"
+  cat > "$pkgdir/usr/share/applications/dsh-desktop.desktop" <<'EOF'
+[Desktop Entry]
+Name=DeepSeek Harness Desktop
+Comment=Agent harness desktop shell (DeepSeek Harness)
+Exec=dsh-desktop
+Icon=dsh-desktop
+Type=Application
+Categories=Development;Office;
+StartupNotify=true
+EOF
+
+  # Icon (if the build produced one).
+  if [[ -f "$srcdir/deepseek-harness/apps/desktop/resources/icon-windows.png" ]]; then
+    mkdir -p "$pkgdir/usr/share/icons/hicolor/256x256/apps"
+    install -m 0644 "$srcdir/deepseek-harness/apps/desktop/resources/icon-windows.png" \
+      "$pkgdir/usr/share/icons/hicolor/256x256/apps/dsh-desktop.png"
+  fi
+}

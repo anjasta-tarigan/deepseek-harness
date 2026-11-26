@@ -1,0 +1,118 @@
+name: Package Desktop · Linux · x64
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: 'Branch or dsh-v* tag to package'
+        type: string
+        default: master
+        required: true
+      update_channel:
+        description: 'Update channel for auto-update metadata'
+        type: choice
+        options: [nightly, stable]
+        default: nightly
+        required: true
+      appimage_compression_level:
+        description: 'AppImage compression: 3 (faster) or 7 (smaller)'
+        type: choice
+        options: ['3', '7']
+        default: '3'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-desktop-package
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    outputs:
+      appimage-path: ${{ steps.package.outputs.appimage-path }}
+      appimage-name: ${{ steps.package.outputs.appimage-name }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      DSH_DESKTOP_TARGET_PLATFORM: linux
+      DSH_DESKTOP_TARGET_ARCH: x64
+      PACKAGE_SOURCE_REF: ${{ inputs.source_ref }}
+      DSH_DESKTOP_UPDATE_CHANNEL: ${{ inputs.update_channel }}
+      PACKAGE_LINUX_APPIMAGE_COMPRESSION_LEVEL: ${{ inputs.appimage_compression_level }}
+      DSH_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '>=26.13.1'
+          cache: 'pnpm'
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            musl-tools \
+            libsecret-1-dev \
+            libxtst-dev \
+            libxrandr-dev \
+            libxss-dev \
+            libgbm-dev \
+            libasound2-dev
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build native system binaries (landlock-run + flock)
+        run: |
+          cd native/system
+          pnpm build:native
+
+      - name: Build root project (official profile)
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: pnpm run build:official --serial
+
+      - name: Package desktop Linux x64 unsigned AppImage
+        id: package
+        env:
+          PACKAGE_LINUX_APPIMAGE_COMPRESSION_LEVEL: ${{ inputs.appimage_compression_level }}
+        run: |
+          cd apps/desktop
+          DSH_DESKTOP_TARGET_PLATFORM=linux \
+            DSH_DESKTOP_TARGET_ARCH=x64 \
+            pnpm package:linux:x64:unsigned
+          ARTIFACT_DIR=".desktop-build/targets/linux-x64/artifacts"
+          APP_IMAGE=$(ls "$ARTIFACT_DIR"/*.AppImage 2>/dev/null | head -1)
+          if [ -z "$APP_IMAGE" ]; then
+            echo "error: no AppImage found in $ARTIFACT_DIR" >&2
+            exit 1
+          fi
+          APP_IMAGE_NAME=$(basename "$APP_IMAGE")
+          echo "appimage-path=$APP_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "appimage-name=$APP_IMAGE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-linux-x64-appimage
+          path: ${{ steps.package.outputs.appimage-path }}
+          retention-days: 7
+
+      - name: Print artifact summary
+        run: |
+          echo "AppImage: ${{ steps.package.outputs.appimage-name }}"
+          echo "Path: ${{ steps.package.outputs.appimage-path }}"
