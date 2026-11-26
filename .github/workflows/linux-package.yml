@@ -45,6 +45,10 @@ jobs:
       DSH_DESKTOP_UPDATE_CHANNEL: ${{ inputs.update_channel }}
       PACKAGE_LINUX_APPIMAGE_COMPRESSION_LEVEL: ${{ inputs.appimage_compression_level }}
       DSH_TELEMETRY_DISABLED: '1'
+      # Mandatory update origin required for test/nightly packaging validation.
+      # Unsigned CI builds are not qualified for distribution; these are placeholder origins.
+      DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://download.example.com'
+      DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: '{"allowedAuthOrigins":["https://login.example.com"]}'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -73,11 +77,11 @@ jobs:
             libgbm-dev \
             libasound2-dev
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Configure Linux desktop packaging environment
         run: cp apps/desktop/.env.linux.example apps/desktop/.env.linux
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build native system binaries (landlock-run + flock)
         run: |
