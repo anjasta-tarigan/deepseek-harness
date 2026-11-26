@@ -43,6 +43,16 @@ export function runPnpmCommand(root: string, args: readonly string[]): void {
   }
 }
 
+/** Node old-space heap limit for TypeScript compilation; overridable for memory-constrained hosts. */
+function maxOldSpaceSize(): number {
+  const value = process.env.DSH_TSC_MAX_OLD_SPACE_SIZE ?? '8192'
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 256 || !Number.isInteger(parsed)) {
+    throw new Error(`compile-referenced-projects: DSH_TSC_MAX_OLD_SPACE_SIZE must be a positive integer, got ${JSON.stringify(value)}`)
+  }
+  return parsed
+}
+
 /**
  * Resolve the Node arguments that compile one aggregate's project references with the serial TypeScript builder.
  * @param root - Repository root containing the aggregate tsconfig.
@@ -94,7 +104,7 @@ export function referencedProjectsCompilerArgs(
  * @returns Arguments for `process.execPath`, run from the repository root.
  */
 export function aggregateCheckArgs(face: 'host' | 'client'): string[] {
-  return ['--max-old-space-size=8192', fileURLToPath(import.meta.resolve('typescript/bin/tsc')), '-p', `tsconfig.${face}.json`]
+  return [`--max-old-space-size=${maxOldSpaceSize()}`, fileURLToPath(import.meta.resolve('typescript/bin/tsc')), '-p', `tsconfig.${face}.json`]
 }
 
 /**
@@ -105,11 +115,11 @@ export function aggregateCheckArgs(face: 'host' | 'client'): string[] {
  * @returns Arguments for `process.execPath`, run from the repository root.
  */
 export function aggregateBuildArgs(face: 'host' | 'client'): string[] {
-  return ['--max-old-space-size=8192', fileURLToPath(import.meta.resolve('typescript/bin/tsc')), '-b', `tsconfig.${face}.json`]
+  return [`--max-old-space-size=${maxOldSpaceSize()}`, fileURLToPath(import.meta.resolve('typescript/bin/tsc')), '-b', `tsconfig.${face}.json`]
 }
 
 function hostHeapArgs(face: 'host' | 'client'): string[] {
-  return face === 'host' ? ['--max-old-space-size=8192'] : []
+  return face === 'host' ? [`--max-old-space-size=${maxOldSpaceSize()}`] : []
 }
 
 /**
