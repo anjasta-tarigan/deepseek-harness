@@ -38,7 +38,7 @@ makedepends=(
   'git'
   'curl'
 )
-source=("git+https://github.com/anjasta-tarigan/deepseek-harness.git#branch=master")
+source=("git+https://github.com/anjasta-tarigan/deepseek-harness.git#branch=linux-domain")
 sha256sums=('SKIP')
 
 # Skip stripping/debug symbol processing: hundreds of Node native binaries
@@ -68,8 +68,9 @@ build() {
   (cd native/system && pnpm build:native)
 
   # Build the root project (official profile): TS compile, tsdown bundles, etc.
-  # Serial execution + larger heap to avoid OOM on typert generation.
-  NODE_OPTIONS="--max-old-space-size=6144" pnpm run build:official --serial
+  # Serial execution + conservative heap to avoid OOM on typert generation.
+  # On low-RAM hosts, reduce further: NODE_OPTIONS="--max-old-space-size=2048"
+  NODE_OPTIONS="--max-old-space-size=2048" pnpm run build:official --serial
 
   # Package the desktop Linux x64 unsigned AppImage.
   # DSH_DESKTOP_TARGET_PLATFORM/ARCH select linux-x64 in package-target.ts.
