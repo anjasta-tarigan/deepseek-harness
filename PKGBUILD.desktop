@@ -67,10 +67,11 @@ build() {
   # musl-gcc is required by native/system/scripts/build.ts.
   (cd native/system && pnpm build:native)
 
-  # Build the root project (official profile): TS compile, tsdown bundles, etc.
+  # Build the root project (official profile, artifacts scope): TS compile, tsdown bundles, etc.
+  # `--scope artifacts` emits every artifact but skips the root aggregate type checks, which need
+  # more heap than this low-RAM host can spare (they still run in CI on bigger runners).
   # Serial execution + conservative heap to avoid OOM on typert generation.
-  # On low-RAM hosts, reduce further: DSH_TSC_MAX_OLD_SPACE_SIZE=2048
-  NODE_OPTIONS="--max-old-space-size=4096" DSH_TSC_MAX_OLD_SPACE_SIZE=4096 pnpm run build:official --serial
+  NODE_OPTIONS="--max-old-space-size=4096" DSH_TSC_MAX_OLD_SPACE_SIZE=4096 pnpm run build:artifacts --serial --profile official
 
   # Package the desktop Linux x64 unsigned AppImage.
   # DSH_DESKTOP_TARGET_PLATFORM/ARCH select linux-x64 in package-target.ts.
