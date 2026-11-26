@@ -45,6 +45,7 @@ jobs:
       DSH_DESKTOP_UPDATE_CHANNEL: ${{ inputs.update_channel }}
       PACKAGE_LINUX_APPIMAGE_COMPRESSION_LEVEL: ${{ inputs.appimage_compression_level }}
       DSH_TELEMETRY_DISABLED: '1'
+      DISPLAY: ':99'
       # Mandatory update origin required for test/nightly packaging validation.
       # Unsigned CI builds are not qualified for distribution; these are placeholder origins.
       DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://download.example.com'
@@ -75,13 +76,33 @@ jobs:
             libxrandr-dev \
             libxss-dev \
             libgbm-dev \
-            libasound2-dev
+            libasound2-dev \
+            libxtst6 \
+            libxss1 \
+            libxrandr2 \
+            libnss3 \
+            libatk1.0-0 \
+            libatk-bridge2.0-0 \
+            libcups2 \
+            libdrm2 \
+            libxkbcommon0 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxfixes3 \
+            libpango-1.0-0 \
+            libcairo2 \
+            xvfb
 
       - name: Configure Linux desktop packaging environment
         run: cp apps/desktop/.env.linux.example apps/desktop/.env.linux
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Start virtual display (Xvfb)
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          sleep 2
 
       - name: Build native system binaries (landlock-run + flock)
         run: |

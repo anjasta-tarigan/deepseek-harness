@@ -78,7 +78,9 @@ function runPnpm(args: readonly string[]): Promise<void> {
     const userConfig = join(config, 'npmrc')
     mkdirSync(config, { recursive: true })
     writeFileSync(userConfig, '')
+    const electronArgs = process.platform === 'linux' ? ['--no-sandbox'] : []
     const child = spawn(NODE, [
+      ...electronArgs,
       '--expose-internals',
       PNPM,
       `--config.registry=${registry}`,
@@ -103,6 +105,7 @@ function runPnpm(args: readonly string[]): Promise<void> {
         XDG_CACHE_HOME: join(PNPM_BUILD_STATE, 'cache'),
         XDG_CONFIG_HOME: config,
         XDG_STATE_HOME: join(PNPM_BUILD_STATE, 'state'),
+        ...(process.env.DISPLAY !== undefined ? { DISPLAY: process.env.DISPLAY } : {}),
       },
       stdio: 'inherit',
     })
