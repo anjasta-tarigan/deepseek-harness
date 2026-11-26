@@ -257,9 +257,8 @@ export function createElectronBuilderConfig(
     },
     linux: {
       category: 'Development',
-      // desktopName becomes the .desktop Name and WM_CLASS/app_id, so the desktop environment links
-      // the running window to its menu entry instead of falling back to Electron's default icon.
-      desktopName: 'DeepSeek Harness',
+      // syncDesktopName reads desktopName from package.json and sets StartupWMClass/app_id so the
+      // desktop environment links the running window to its menu entry instead of Electron's default icon.
       syncDesktopName: true,
       target: ['AppImage'],
     },
