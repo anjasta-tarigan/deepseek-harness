@@ -45,7 +45,6 @@ jobs:
       DSH_DESKTOP_UPDATE_CHANNEL: ${{ inputs.update_channel }}
       PACKAGE_LINUX_APPIMAGE_COMPRESSION_LEVEL: ${{ inputs.appimage_compression_level }}
       DSH_TELEMETRY_DISABLED: '1'
-      DISPLAY: ':99'
       # Mandatory update origin required for test/nightly packaging validation.
       # Unsigned CI builds are not qualified for distribution; these are placeholder origins.
       DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://download.example.com'
@@ -99,11 +98,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Start virtual display (Xvfb)
-        run: |
-          Xvfb :99 -screen 0 1024x768x24 &
-          sleep 2
-
       - name: Build native system binaries (landlock-run + flock)
         run: |
           cd native/system
@@ -122,7 +116,7 @@ jobs:
           cd apps/desktop
           DSH_DESKTOP_TARGET_PLATFORM=linux \
             DSH_DESKTOP_TARGET_ARCH=x64 \
-            pnpm package:linux:x64:unsigned
+            xvfb-run -a pnpm package:linux:x64:unsigned
           ARTIFACT_DIR=".desktop-build/targets/linux-x64/artifacts"
           APP_IMAGE=$(ls "$ARTIFACT_DIR"/*.AppImage 2>/dev/null | head -1)
           if [ -z "$APP_IMAGE" ]; then
