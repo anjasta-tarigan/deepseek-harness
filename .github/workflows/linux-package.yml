@@ -117,7 +117,7 @@ jobs:
           DSH_DESKTOP_TARGET_PLATFORM=linux \
             DSH_DESKTOP_TARGET_ARCH=x64 \
             xvfb-run -a pnpm package:linux:x64:unsigned
-          ARTIFACT_DIR=".desktop-build/targets/linux-x64/artifacts"
+          ARTIFACT_DIR=".desktop-build/targets/linux-x64/unsigned-artifacts"
           APP_IMAGE=$(ls "$ARTIFACT_DIR"/*.AppImage 2>/dev/null | head -1)
           if [ -z "$APP_IMAGE" ]; then
             echo "error: no AppImage found in $ARTIFACT_DIR" >&2

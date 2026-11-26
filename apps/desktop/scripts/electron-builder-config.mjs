@@ -258,6 +258,7 @@ export function createElectronBuilderConfig(
       category: 'Development',
       target: ['AppImage'],
       executableName: 'deepseek-harness',
+      desktopName: 'deepseek-harness',
     },
     nsis: {
       uninstallDisplayName: '${productName}',

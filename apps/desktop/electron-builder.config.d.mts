@@ -49,6 +49,8 @@ export interface DesktopElectronBuilderConfig {
   readonly linux: {
     readonly category: string
     readonly target: readonly string[]
+    readonly executableName: string
+    readonly desktopName: string
   }
   readonly nsis: {
     readonly uninstallDisplayName: '${productName}'
