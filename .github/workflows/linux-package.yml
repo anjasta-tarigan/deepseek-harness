@@ -76,6 +76,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Configure Linux desktop packaging environment
+        run: cp apps/desktop/.env.linux.example apps/desktop/.env.linux
+
       - name: Build native system binaries (landlock-run + flock)
         run: |
           cd native/system
