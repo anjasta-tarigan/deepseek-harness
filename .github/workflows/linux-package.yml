@@ -45,10 +45,7 @@ jobs:
       DSH_DESKTOP_UPDATE_CHANNEL: ${{ inputs.update_channel }}
       PACKAGE_LINUX_APPIMAGE_COMPRESSION_LEVEL: ${{ inputs.appimage_compression_level }}
       DSH_TELEMETRY_DISABLED: '1'
-      # Mandatory update origin required for test/nightly packaging validation.
-      # Unsigned CI builds are not qualified for distribution; these are placeholder origins.
-      DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://download.example.com'
-      DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: '{"allowedAuthOrigins":["https://login.example.com"]}'
+      # Linux ships no mandatory-update policy client; configuring one fails packaging.
     steps:
       - uses: actions/checkout@v4
         with:

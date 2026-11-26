@@ -47,6 +47,13 @@ it('rejects login origins in production', () => {
     .toThrow('must not configure allowedAuthOrigins')
 })
 
+it('omits the policy on Linux and rejects Linux policy settings', () => {
+  expect(resolveDesktopPolicyEnvironment({ DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: '' }, 'linux')).toBeUndefined()
+  expect(() => resolveDesktopPolicyEnvironment(origins, 'linux')).toThrow('Windows and macOS only')
+  expect(() => { validateDesktopPackageEnvironment({ DSH_DESKTOP_APP_ID: 'com.example.test' }, { platform: 'linux', arch: 'x64' }, { unsigned: true }) })
+    .not.toThrow()
+})
+
 it.each([{ unsigned: true }, { prepareOnly: true }, {}])('requires policy outside local macOS builds in %j', (options) => {
   for (const platform of ['win32', 'darwin'] as const) {
     if (platform === 'darwin' && options.unsigned) {
