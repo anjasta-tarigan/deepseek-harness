@@ -75,15 +75,17 @@ build() {
   # Package the desktop Linux x64 unsigned AppImage.
   # DSH_DESKTOP_TARGET_PLATFORM/ARCH select linux-x64 in package-target.ts.
   (cd apps/desktop && \
+    cp .env.linux.example .env.linux && \
     DSH_DESKTOP_TARGET_PLATFORM=linux \
     DSH_DESKTOP_TARGET_ARCH=x64 \
     pnpm package:linux:x64:unsigned)
 
   # Locate the produced AppImage for the package() step.
+  # Unsigned builds write to unsigned-artifacts/, not artifacts/.
   local appimage
-  appimage=$(find "$srcdir/deepseek-harness/apps/desktop/.desktop-build/targets/linux-x64/artifacts" -name '*.AppImage' -print -quit)
+  appimage=$(find "$srcdir/deepseek-harness/apps/desktop/.desktop-build/targets/linux-x64/unsigned-artifacts" -name '*.AppImage' -print -quit)
   if [[ -z "$appimage" ]]; then
-    error "No AppImage produced in linux-x64/artifacts"
+    error "No AppImage produced in linux-x64/unsigned-artifacts"
     return 1
   fi
   printf '%s' "$appimage" > "$srcdir/.appimage-path"
