@@ -124,7 +124,7 @@ jobs:
             exit 1
           fi
           APP_IMAGE_NAME=$(basename "$APP_IMAGE")
-          echo "appimage-path=$APP_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "appimage-path=apps/desktop/$APP_IMAGE" >> "$GITHUB_OUTPUT"
           echo "appimage-name=$APP_IMAGE_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Upload AppImage artifact
